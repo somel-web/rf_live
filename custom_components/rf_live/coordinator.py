@@ -53,9 +53,14 @@ def _extract_step_info(
     start_ts = step.get("start")
     end_ts = step.get("end")
 
+    sous_titre = step.get("titleSlug") or ""
+    if sous_titre:
+        sous_titre = sous_titre.replace("-", " ")
+        sous_titre = sous_titre[:1].upper() + sous_titre[1:]
+
     return {
         "title": step.get("title") or step.get("titleSlug") or "",
-        "sous_titre": step.get("titleSlug") or "",
+        "sous_titre": sous_titre,
         "nom_emission": (step.get("titleConcept") or "").strip(),
         "image": _build_image_url(step.get("visual"), resolution, generic_image),
         "image_banner": _build_image_url(
