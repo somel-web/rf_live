@@ -54,9 +54,9 @@ def _extract_step_info(
     end_ts = step.get("end")
 
     return {
-        "title": step.get("titleSlug") or step.get("title") or "",
+        "title": step.get("title") or step.get("titleSlug") or "",
+        "sous_titre": step.get("titleSlug") or "",
         "nom_emission": (step.get("titleConcept") or "").strip(),
-        "description": step.get("description") or step.get("expressionDescription") or "",
         "image": _build_image_url(step.get("visual"), resolution, generic_image),
         "image_banner": _build_image_url(
             step.get("visualBanner") or step.get("visual"), resolution, generic_image
