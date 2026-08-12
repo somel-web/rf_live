@@ -99,6 +99,7 @@ class RFLiveUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._generic_image = generic_image
         self._resolution = resolution
         self._last_valid_data: dict[str, Any] | None = None
+        self._consecutive_failures = 0
 
     async def _async_update_data(self) -> dict[str, Any]:
         session = async_get_clientsession(self.hass)
@@ -110,19 +111,44 @@ class RFLiveUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 response.raise_for_status()
                 payload = await response.json(content_type=None)
         except Exception as err:  # noqa: BLE001 - on log et on garde le cache
+            self._consecutive_failures += 1
+            # Backoff progressif court plutôt que de sauter direct au
+            # garde-fou de 45 min : si l'échec survient pile au moment où
+            # la fenêtre devrait basculer (fin de step), on veut reprendre
+            # vite pour éviter d'afficher un cache avec debut/fin déjà
+            # dépassés pendant un cycle entier de 45 min.
+            backoff_seconds = min(
+                MIN_UPDATE_INTERVAL_SECONDS * (2 ** (self._consecutive_failures - 1)),
+                GUARD_INTERVAL.total_seconds(),
+            )
             _LOGGER.warning(
-                "RF Live (%s) : échec du fetch API (%s), conservation du dernier cache valide",
+                "RF Live (%s) : échec du fetch API (%s), nouvelle tentative dans %.0fs "
+                "(échec consécutif n°%d), conservation du dernier cache valide",
                 self.channel_name,
                 err,
+                backoff_seconds,
+                self._consecutive_failures,
             )
             if self._last_valid_data is not None:
-                self.update_interval = GUARD_INTERVAL
+                self.update_interval = timedelta(seconds=backoff_seconds)
+                current = self._last_valid_data.get("current") or {}
+                stale_end_ts = current.get("_end_ts")
+                if stale_end_ts:
+                    staleness_min = (dt_util.utcnow().timestamp() - stale_end_ts) / 60
+                    if staleness_min > 0:
+                        _LOGGER.warning(
+                            "RF Live (%s) : cache servi périmé depuis %.1f min "
+                            "(fin théorique du step courant dépassée)",
+                            self.channel_name,
+                            staleness_min,
+                        )
                 return self._last_valid_data
             # Pas de cache du tout (ex. premier démarrage) : on laisse
             # remonter l'erreur pour un ConfigEntryNotReady propre.
             raise
 
         parsed = self._parse_payload(payload)
+        self._consecutive_failures = 0
         self._last_valid_data = parsed
         self.update_interval = self._compute_next_interval(parsed)
         return parsed
