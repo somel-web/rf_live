@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ajouter une chaîne Radio France",
+        "data": {
+          "channel": "Chaîne",
+          "stream_url": "URL du flux audio",
+          "generic_image": "URL de l'image générique de la chaîne",
+          "image_resolution": "Résolution des images (ex : 268x268)"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "L'URL doit être une adresse http(s) valide"
+    },
+    "abort": {
+      "already_configured": "Cette chaîne est déjà configurée"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "stream_url": "URL du flux audio",
+          "generic_image": "URL de l'image générique de la chaîne",
+          "image_resolution": "Résolution des images (ex : 268x268)"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "L'URL doit être une adresse http(s) valide"
+    }
+  }
+}
