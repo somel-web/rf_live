@@ -79,7 +79,7 @@ class RFLiveStepSensor(CoordinatorEntity[RFLiveUpdateCoordinator], SensorEntity)
             attrs.update(
                 {
                     "nom_emission": step.get("nom_emission"),
-                    "description": step.get("description"),
+                    "sous_titre": step.get("sous_titre"),
                     "image": step.get("image"),
                     "image_banner": step.get("image_banner"),
                     "debut": step.get("debut"),
