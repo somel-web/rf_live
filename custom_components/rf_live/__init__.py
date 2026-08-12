@@ -16,7 +16,7 @@ from .const import (
 )
 from .coordinator import RFLiveUpdateCoordinator
 
-PLATFORMS = ["sensor"]
+PLATFORMS = ["sensor", "button"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
