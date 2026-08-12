@@ -8,5 +8,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/somel-web/rf_live/issues",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.1.6"
 }
