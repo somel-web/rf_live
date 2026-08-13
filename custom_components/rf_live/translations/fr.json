@@ -4,11 +4,18 @@
       "user": {
         "title": "Ajouter une chaîne Radio France",
         "data": {
-          "channel": "Chaîne",
+          "channel": "Chaîne"
+        }
+      },
+      "details": {
+        "title": "Réglages de la chaîne",
+        "data": {
+          "endpoint_slug": "Slug de l'endpoint API",
           "stream_url": "URL du flux audio",
           "generic_image": "URL de l'image générique de la chaîne",
           "image_resolution": "Résolution des images (ex : 268x268)"
-        }
+        },
+        "description": "Le slug par défaut est une supposition pour cette chaîne (confirmé uniquement pour Inter et Culture). Corrige-le si l'intégration ne fonctionne pas après l'ajout."
       }
     },
     "error": {
@@ -22,6 +29,7 @@
     "step": {
       "init": {
         "data": {
+          "endpoint_slug": "Slug de l'endpoint API",
           "stream_url": "URL du flux audio",
           "generic_image": "URL de l'image générique de la chaîne",
           "image_resolution": "Résolution des images (ex : 268x268)"
