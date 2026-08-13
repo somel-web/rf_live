@@ -4,7 +4,13 @@
       "user": {
         "title": "Add a Radio France station",
         "data": {
-          "channel": "Station",
+          "channel": "Station"
+        }
+      },
+      "details": {
+        "title": "Station settings",
+        "data": {
+          "endpoint_slug": "API endpoint slug",
           "stream_url": "Stream URL",
           "generic_image": "Generic station image URL",
           "image_resolution": "Image resolution (e.g. 268x268)"
@@ -22,6 +28,7 @@
     "step": {
       "init": {
         "data": {
+          "endpoint_slug": "API endpoint slug",
           "stream_url": "Stream URL",
           "generic_image": "Generic station image URL",
           "image_resolution": "Image resolution (e.g. 268x268)"

@@ -8,6 +8,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import (
     CHANNELS,
     CONF_CHANNEL,
+    CONF_ENDPOINT_SLUG,
     CONF_GENERIC_IMAGE,
     CONF_IMAGE_RESOLUTION,
     CONF_STREAM_URL,
@@ -29,6 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         channel_id=channel_id,
         channel_name=channel_name,
+        endpoint_slug=data[CONF_ENDPOINT_SLUG],
         stream_url=data[CONF_STREAM_URL],
         generic_image=data[CONF_GENERIC_IMAGE],
         resolution=data.get(CONF_IMAGE_RESOLUTION, DEFAULT_IMAGE_RESOLUTION),

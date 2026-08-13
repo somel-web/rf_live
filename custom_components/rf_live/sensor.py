@@ -64,7 +64,7 @@ class RFLiveStepSensor(CoordinatorEntity[RFLiveUpdateCoordinator], SensorEntity)
         step = self._step_data
         if not step:
             return None
-        return step.get("title")
+        return step.get("nom_emission")
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -78,10 +78,8 @@ class RFLiveStepSensor(CoordinatorEntity[RFLiveUpdateCoordinator], SensorEntity)
         if step:
             attrs.update(
                 {
-                    "nom_emission": step.get("nom_emission"),
-                    "sous_titre": step.get("sous_titre"),
+                    "jour": step.get("jour"),
                     "image": step.get("image"),
-                    "image_banner": step.get("image_banner"),
                     "debut": step.get("debut"),
                     "fin": step.get("fin"),
                 }
