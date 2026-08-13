@@ -1,13 +1,9 @@
-# Exemple de carte Lovelace pour une chaîne (ex. France Inter, id=1).
+# Exemple de carte Lovelace pour une chaîne (ex. France Inter).
 # Remplace les entity_id par ceux générés pour ton instance.
 #
 # Limite HA native : la carte `picture-elements` standard ne permet PAS
-# de templater le champ `image:` avec un attribut d'entité (l'image doit
-# être une URL statique connue au chargement de la carte). Pour une image
-# de background dynamique basée sur l'attribut `image` du sensor, deux
-# options réalistes :
-#
-# 1. "config-template-card" (HACS, léger, fait exactement ça) :
+# de templater le champ `image:` avec un attribut d'entité. Solution :
+# "config-template-card" (HACS).
 type: custom:config-template-card
 entities:
   - sensor.rf_live_france_inter_en_cours
@@ -18,6 +14,7 @@ card:
   elements:
     - type: state-label
       entity: sensor.rf_live_france_inter_en_cours
+      attribute: jour
       style:
         top: 85%
         left: 5%
@@ -26,18 +23,9 @@ card:
         text-shadow: 0 0 4px black
     - type: state-label
       entity: sensor.rf_live_france_inter_en_cours
-      attribute: nom_emission
       style:
         top: 92%
         left: 5%
         color: white
         font-size: 0.8em
         text-shadow: 0 0 4px black
-
-# 2. Alternative sans dépendance HACS côté frontend : une plateforme
-#    "image" HA native (pas seulement "sensor") qui expose directement
-#    l'URL courante et se comporte comme une vraie entité image ; ça
-#    se met dans une carte "picture-entity" standard, sans template.
-#    Non implémenté dans cette v1 (on expose l'URL en attribut de sensor),
-#    mais c'est une évolution possible si tu veux éviter toute dépendance
-#    HACS côté frontend.
