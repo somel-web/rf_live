@@ -1,10 +1,11 @@
 """DataUpdateCoordinator pour RF Live.
 
-Pas de système de cache : chaque fetch réussi replanifie le suivant
-exactement sur la valeur "delayToRefresh" (ms) renvoyée par l'API,
-déjà synchronisée côté serveur avec l'heure de la requête. En cas
-d'échec, on lève UpdateFailed (comportement standard HA : entités en
-"unavailable", nouvelle tentative au prochain cycle), on ne garde plus
+Pas de système de cache : chaque fetch réussi replanifie le suivant.
+delayToRefresh (ms, renvoyé par l'API) s'est révélé peu fiable en
+pratique : priorité à now.endTime (heure de fin réelle du step
+courant), delayToRefresh/2 uniquement en repli. En cas d'échec, on
+lève UpdateFailed (comportement standard HA : entités en
+"unavailable", nouvelle tentative au prochain cycle), on ne garde pas
 de dernière valeur valide en mémoire.
 """
 from __future__ import annotations
@@ -23,6 +24,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     API_URL,
     DEFAULT_REFRESH_SECONDS,
+    END_OF_STEP_MARGIN_SECONDS,
     IMAGE_URL,
     MAX_REFRESH_SECONDS,
     MIN_REFRESH_SECONDS,
@@ -118,21 +120,39 @@ class RFLiveUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return {"current": now_info, "next": next_info}
 
     def _compute_next_interval(self, payload: dict[str, Any]) -> timedelta:
-        """Replanifie sur delayToRefresh (ms), avec bornes défensives."""
-        delay_ms = payload.get("delayToRefresh")
+        """Replanifie le prochain fetch.
 
-        if not isinstance(delay_ms, (int, float)) or delay_ms <= 0:
-            _LOGGER.debug(
-                "RF Live (%s) : 'delayToRefresh' absent ou invalide (%s), "
-                "repli sur %ds",
-                self.channel_name,
-                delay_ms,
-                DEFAULT_REFRESH_SECONDS,
-            )
-            return timedelta(seconds=DEFAULT_REFRESH_SECONDS)
+        `delayToRefresh` s'est révélé peu fiable en pratique. Priorité à
+        `now.endTime` (heure de fin réelle du step courant, donnée
+        indépendante et vérifiable) ; `delayToRefresh` n'est utilisé qu'en
+        repli, et divisé par 2 par précaution puisqu'il n'est pas fiable.
+        """
+        now_step = payload.get("now") or {}
+        end_ts = now_step.get("endTime")
 
-        delay_seconds = delay_ms / 1000
+        if isinstance(end_ts, (int, float)) and end_ts > 0:
+            now_ts = dt_util.utcnow().timestamp()
+            delay_seconds = end_ts - now_ts + END_OF_STEP_MARGIN_SECONDS
+            source = "now.endTime"
+        else:
+            delay_ms = payload.get("delayToRefresh")
+            if isinstance(delay_ms, (int, float)) and delay_ms > 0:
+                # Divisé par 2 : delayToRefresh s'est montré peu fiable,
+                # on préfère repasser plus tôt que de rater un changement.
+                delay_seconds = (delay_ms / 1000) / 2
+                source = "delayToRefresh/2"
+            else:
+                delay_seconds = DEFAULT_REFRESH_SECONDS
+                source = "défaut"
+
         delay_seconds = max(delay_seconds, MIN_REFRESH_SECONDS)
         delay_seconds = min(delay_seconds, MAX_REFRESH_SECONDS)
+
+        _LOGGER.debug(
+            "RF Live (%s) : prochain fetch dans %.0fs (source : %s)",
+            self.channel_name,
+            delay_seconds,
+            source,
+        )
 
         return timedelta(seconds=delay_seconds)

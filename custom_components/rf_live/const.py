@@ -38,11 +38,15 @@ DEFAULT_IMAGE_RESOLUTION = "268x268"
 API_URL = "https://api.radiofrance.fr/livemeta/live/{channel_id}/{slug}"
 IMAGE_URL = "https://www.radiofrance.fr/pikapi/images/{visual_id}/{resolution}"
 
-# Pas de système de cache : chaque fetch réussi replanifie le suivant
-# exactement sur la valeur "delayToRefresh" (ms) renvoyée par l'API,
-# qui est déjà synchronisée côté serveur avec le moment de la requête.
-# Ces bornes sont uniquement défensives (valeur absente/aberrante),
-# pas une politique de cache.
+# Pas de système de cache : chaque fetch réussi replanifie le suivant.
+# delayToRefresh s'est révélé peu fiable en pratique : priorité à
+# now.endTime (heure de fin réelle du step courant), delayToRefresh/2
+# uniquement en repli. Ces bornes sont défensives (valeur absente/
+# aberrante), pas une politique de cache.
 MIN_REFRESH_SECONDS = 5
 MAX_REFRESH_SECONDS = 30 * 60
 DEFAULT_REFRESH_SECONDS = 30
+
+# Marge ajoutée après l'heure de fin théorique de "now" avant de refetch,
+# pour laisser le temps à l'API de basculer sur le step suivant.
+END_OF_STEP_MARGIN_SECONDS = 5
