@@ -1,31 +1,27 @@
 # Exemple de carte Lovelace pour une chaîne (ex. France Inter).
 # Remplace les entity_id par ceux générés pour ton instance.
 #
-# Limite HA native : la carte `picture-elements` standard ne permet PAS
-# de templater le champ `image:` avec un attribut d'entité. Solution :
-# "config-template-card" (HACS).
-type: custom:config-template-card
-entities:
-  - sensor.rf_live_france_inter_en_cours
-card:
-  type: picture-elements
-  image: >-
-    ${states['sensor.rf_live_france_inter_en_cours'].attributes.image}
-  elements:
-    - type: state-label
-      entity: sensor.rf_live_france_inter_en_cours
-      attribute: jour
-      style:
-        top: 85%
-        left: 5%
-        color: white
-        font-weight: bold
-        text-shadow: 0 0 4px black
-    - type: state-label
-      entity: sensor.rf_live_france_inter_en_cours
-      style:
-        top: 92%
-        left: 5%
-        color: white
-        font-size: 0.8em
-        text-shadow: 0 0 4px black
+# Carte Markdown : native HA core, templates Jinja2 supportés nativement,
+# pas de dépendance HACS (contrairement à picture-elements qui a besoin de
+# config-template-card pour templater l'image). Recommandé ici car
+# l'affichage kiosk principal (Kindle/iPad) passe par du HTML custom + WS
+# direct, pas par Lovelace — cette carte n'est qu'un confort pour le
+# dashboard HA lui-même.
+#
+# <img> en HTML brut plutôt que la syntaxe ![]() pure : permet de fixer
+# la taille d'affichage (la syntaxe markdown pure ne le permet pas).
+type: markdown
+content: >
+  ## {{ states('sensor.rf_live_france_inter_en_cours') }}
+
+  {{ state_attr('sensor.rf_live_france_inter_en_cours', 'jour') }}
+
+
+  <img src="{{ state_attr('sensor.rf_live_france_inter_en_cours', 'image') }}" width="268">
+
+
+  ---
+
+
+  **À suivre :** {{ states('sensor.rf_live_france_inter_suivant') }}
+  — {{ state_attr('sensor.rf_live_france_inter_suivant', 'jour') }}
