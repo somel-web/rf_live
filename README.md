@@ -113,41 +113,44 @@ Le nom de l'émission n'est pas dupliqué en overlay : il est déjà présent vi
 
 ---
 
-## Media player enrichi (image + titre natifs dans la carte "Media control")
+## Media player enrichi (image dans une vraie carte de contrôle)
 
-Le problème de base : un `media_player` "bête" (ex. une enceinte qui ne fait que jouer l'URL du flux, sans rien connaître du contenu) n'a pas d'`entity_picture` — la carte HA native `media-control` n'a alors rien à afficher en fond. Forcer une image via `card_mod` sur cette carte est fragile (structure interne changeante selon les versions de HA) et ne fait que cacher le vrai problème : l'entité elle-même n'a pas la bonne donnée.
+Le problème de base : un `media_player` "bête" (ex. une enceinte qui ne fait que jouer l'URL du flux, sans rien connaître du contenu) n'a pas d'`entity_picture` — la carte HA native `media-control` n'a alors rien à afficher en fond.
 
-**Solution : combiner l'enceinte réelle avec `sensor.<chaine>_en_cours` via [ha-custom-universal-media-player](https://github.com/bastgau/ha-custom-universal-media-player)** (HACS, config UI complète, pas de YAML à écrire dans `configuration.yaml`). Ce fork corrige spécifiquement une limitation de l'intégration native "Universal Media Player" qui ne pouvait pas accéder à certains attributs des enfants — dont `entity_picture`.
+Plusieurs approches ont été explorées (intégration HACS tierce pour combiner/surcharger l'entité, `template:` natif — qui ne supporte en réalité **aucune plateforme `media_player`**, contrairement à ce qu'on pourrait penser en lisant sa doc en diagonale) avant de converger sur la plus simple : **[Yet Another Media Player (YAMP)](https://github.com/jianyu-li/yet-another-media-player)** (carte Lovelace custom, HACS), qui supporte nativement la surcharge d'artwork par correspondance sur le flux joué — exactement ce qu'il fallait, sans toucher à l'entité elle-même.
 
-### Mise en place
-
-1. **HACS > ⋮ > Dépôts personnalisés** > ajouter `github.com/bastgau/ha-custom-universal-media-player` (catégorie Intégration). Nécessite HA 2026.7.0+.
-2. Installer, puis **redémarrer HA** (redémarrage complet requis pour une nouvelle intégration).
-3. **Réglages > Appareils et services > Ajouter une intégration** > rechercher l'intégration. Nommer l'entité, sélectionner l'enceinte réelle (ex. `media_player.salon_bose`) comme unique enfant.
-4. **Configurer les commandes** (mode guidé) : pour chaque commande (lecture, pause, volume...), cibler l'enceinte réelle.
-5. **Surcharger les attributs** (section "Configure attributes", YAML personnalisé) :
-   ```yaml
-   media_title: sensor.france_inter_en_cours
-   media_artist: sensor.france_inter_en_cours|jour
-   entity_picture: sensor.france_inter_en_cours|image
-   ```
-   Syntaxe : `entity_id` seul → prend l'état de cette entité ; `entity_id|attribut` → prend un attribut spécifique. `media_title` prend donc l'état du sensor (nom de l'émission), les deux autres pointent vers ses attributs.
-6. Finaliser. La nouvelle entité `media_player` doit apparaître dans **Outils de développement > États** avec les bons `media_title`/`media_artist`/`entity_picture` dès que la chaîne configurée joue sur l'enceinte.
-
-### Carte Lovelace
+### Carte YAMP
 
 ```yaml
-type: media-control
-entity: media_player.<la_nouvelle_entité>
+type: custom:yet-another-media-player
+entities:
+  - media_player.salon_bose
+media_artwork_overrides:
+  - image_url: "{{ state_attr('sensor.france_inter_en_cours', 'image') }}"
+    media_content_id: "*franceinter*"
+  - image_url: "{{ state_attr('sensor.france_culture_en_cours', 'image') }}"
+    media_content_id: "*franceculture*"
 ```
 
-Plus besoin de `card_mod` ni de hack CSS : la carte native affiche directement le fond flouté et le texte à partir des vrais attributs de l'entité. Validé en conditions réelles (voir capture du 14/08/2026).
+`media_content_id` correspond à l'URL du flux passée au moment du `play_media` sur l'enceinte réelle — le wildcard (`*franceinter*`) tolère les variantes de qualité/format (`franceinter-hifi.aac` vs `franceinter-midfi.mp3` par exemple). `image_url` accepte un template Jinja résolu dynamiquement, donc l'image suit en direct l'émission en cours.
 
----
+**Limite assumée** : YAMP ne surcharge que l'artwork, pas le texte (titre/artiste restent ceux que l'entité native rapporte — généralement vide pour un flux brut). Ce n'est pas un problème ici puisque le nom de l'émission est déjà visible dans l'image fournie par l'API RF elle-même (cf. les visuels avec titre incrusté). Pour un détail texte (jour, émission suivante), une carte séparée suffit :
 
-## Piste explorée et mise en réserve : relais ICY pour Music Assistant
+```yaml
+type: markdown
+content: >
+  {{ state_attr('sensor.france_inter_en_cours', 'jour') }}
 
-Radio France n'implémentant pas le protocole ICY sur ses flux (pas de `StreamTitle` natif), un projet séparé (`rf_icy_relay`, non inclus dans ce repo) a été développé pour relayer l'audio en y injectant de vraies métadonnées ICY construites à partir de cette même API `livemeta/live`. Fonctionnel pour le titre (confirmé avec VLC et Music Assistant), mais l'image (`StreamUrl`, convention informelle ICY) n'est pas exploitée de façon fiable par Music Assistant en pratique — mis de côté pour ce cas d'usage précis, la découverte reste valable pour d'autres applications qui liraient correctement ce champ.
+
+  **À suivre :** {{ states('sensor.france_inter_suivant') }}
+  — {{ state_attr('sensor.france_inter_suivant', 'jour') }}
+```
+
+### Pistes abandonnées (gardées en note pour éviter de les réexplorer)
+
+- **`ha-custom-universal-media-player`** (HACS) + sensor template intermédiaire : fonctionnel mais nécessite deux mécanismes différents pour un seul résultat, alors que YAMP fait la même chose nativement en un bloc.
+- **`template: - media_player:`** : n'existe pas. La liste officielle des plateformes supportées par l'intégration `template` ne contient pas `media_player` (alarm control panel, binary sensor, button, cover, device tracker, event, fan, image, light, lock, number, select, sensor, switch, update, vacuum, weather — c'est tout). Une config `template:` avec un bloc `media_player:` est silencieusement ignorée par HA, qui ne garde que le trigger — d'où le repair "trigger orphelin".
+- **Relais ICY pour Music Assistant** (`rf_icy_relay`, projet séparé, non inclus dans ce repo) : fonctionnel pour le titre (confirmé avec VLC et Music Assistant), mais nécessite de router l'audio via Music Assistant plutôt que directement vers l'enceinte — mis de côté une fois YAMP identifié comme solution plus directe pour ce cas d'usage. Reste une découverte valable pour d'autres projets.
 
 ## À garder en mémoire (pas encore implémenté)
 
